@@ -10,6 +10,8 @@ $ pip install -U openai
 $ python script.py <num_posts>
 ```
 
+Look at `chat_history_example.json` to see some posts generated with the default system prompt.
+
 ## Ideas for generating interesting posts
 - Modify `systemprompt.md`
 - Try different AI models via OpenRouter

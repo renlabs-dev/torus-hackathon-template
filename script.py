@@ -1,41 +1,66 @@
 import os
 import argparse
 import json
-from datetime import datetime
 from openai import OpenAI
 
-def read_system_prompt(filename="systemprompt.md"):
-    with open(filename, 'r', encoding='utf-8') as file:
-        return file.read().strip()
+# How many previous chat messages to keep in the context when prompting the model
+chat_history_limit = 30
+
+# File to store chat history
+chat_history_filename = "chat_history.json"
+
+# The model to use for generating social media posts
+# Choose from https://openrouter.ai/models
+model = "anthropic/claude-3.5-sonnet:beta"
 
 def generate_social_media_posts(num_posts):
+    def load_chat_history():
+        def read_system_prompt(filename="systemprompt.md"):
+            with open(filename, 'r', encoding='utf-8') as file:
+                return file.read().strip()
+
+        if not os.path.exists(chat_history_filename):
+            # Initialize chat history with a system message
+            return [
+                {
+                    "role": "system",
+                    "content": read_system_prompt() # Read system prompt from file
+                }
+            ]
+        with open(chat_history_filename, 'r', encoding='utf-8') as file:
+            return json.load(file)
+
+    def write_chat_history(chat_history):
+        with open(chat_history_filename, 'w', encoding='utf-8') as file:
+            json.dump(chat_history, file, ensure_ascii=False, indent=2)
+        print(f"\nChat history has been saved to {chat_history_filename}")
+
+    def trim_chat_history(chat_history, limit):
+        if len(chat_history) > limit:
+            # Keep the first element and the last (limit - 1) elements
+            return [chat_history[0]] + chat_history[-(limit - 1):]
+        else:
+            # If the chat history is already within the limit, return it unchanged
+            return chat_history
+
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
         api_key=os.environ.get("OPENROUTER_API_KEY")
     )
 
-    # Read system prompt from file
-    system_prompt = read_system_prompt()
-
-    # Initialize chat history with a system message
-    chat_history = [
-        {
-            "role": "system",
-            "content": system_prompt
-        }
-    ]
+    chat_history = load_chat_history()
 
     for i in range(num_posts):
         # Add user message to chat history
         chat_history.append({
             "role": "user",
-            "content": f"Generate a creative social media post (number {i+1}). Make sure it's different from the previous posts."
+            "content": f"Generate a creative social media post. Make sure it's different from the previous posts."
         })
 
         # Generate completion
         completion = client.chat.completions.create(
-            model="anthropic/claude-3.5-sonnet:beta",
-            messages=chat_history
+            model=model,
+            messages=trim_chat_history(chat_history, chat_history_limit)
         )
 
         # Extract the generated content
@@ -52,7 +77,8 @@ def generate_social_media_posts(num_posts):
         print(generated_content)
         print()
 
-    return chat_history
+    # Save chat history to file
+    write_chat_history(chat_history)
 
 def main():
     parser = argparse.ArgumentParser(description="Generate social media posts about Torus using AI")
@@ -63,17 +89,7 @@ def main():
         print("Error: OPENROUTER_API_KEY environment variable is not set.")
         return
 
-    chat_history = generate_social_media_posts(args.num_posts)
-
-    # Generate a timestamp for the filename
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"chat_history_{timestamp}.json"
-
-    # Dump the chat history to a pretty-printed JSON file
-    with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(chat_history, f, ensure_ascii=False, indent=2)
-
-    print(f"\nChat history has been saved to {filename}")
+    generate_social_media_posts(args.num_posts)
 
 if __name__ == "__main__":
     main()
