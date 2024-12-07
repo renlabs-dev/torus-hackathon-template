@@ -2,6 +2,9 @@ import os
 import argparse
 import json
 from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # How many previous chat messages to keep in the context when prompting the model
 chat_history_limit = 30
@@ -10,8 +13,7 @@ chat_history_limit = 30
 chat_history_filename = "chat_history.json"
 
 # The model to use for generating social media posts
-# Choose from https://openrouter.ai/models
-model = "anthropic/claude-3.5-sonnet:beta"
+model = "grok-beta"
 
 def generate_social_media_posts(num_posts):
     def load_chat_history():
@@ -44,8 +46,8 @@ def generate_social_media_posts(num_posts):
             return chat_history
 
     client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=os.environ.get("OPENROUTER_API_KEY")
+        base_url="https://api.x.ai/v1",
+        api_key=os.environ.get("XAI_API_KEY")
     )
 
     chat_history = load_chat_history()
@@ -85,8 +87,8 @@ def main():
     parser.add_argument("num_posts", type=int, help="Number of social media posts to generate")
     args = parser.parse_args()
 
-    if "OPENROUTER_API_KEY" not in os.environ:
-        print("Error: OPENROUTER_API_KEY environment variable is not set.")
+    if "XAI_API_KEY" not in os.environ:
+        print("Error: XAI_API_KEY environment variable is not set.")
         return
 
     generate_social_media_posts(args.num_posts)
