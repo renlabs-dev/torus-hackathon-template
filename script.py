@@ -13,7 +13,6 @@ chat_history_limit = 30
 chat_history_filename = "chat_history.json"
 
 # The model to use for generating social media posts
-# Choose from https://openrouter.ai/models
 model = "grok-beta"
 
 def generate_social_media_posts(num_posts):
